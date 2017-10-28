@@ -26,16 +26,17 @@ N.B. There are looots of files to be dealt with. Probably too many for your comp
 - Extract "complex" descriptors: recurrence quantification analysis
 
 ```{r}
+
 library(readr)
 library(crqa)
-library(readr)
 library(stringr)
+library(ggplot2)
 
-wd = getwd
+wd = getwd()
 
 
 # loading files
-DemoData = read_delim("~/assignment2-master/DemoData.txt", 
+DemoData = read_delim("DemoData.txt", 
     "\t", escape_double = FALSE, trim_ws = TRUE)
 
 articulation = read.table("Articulation.txt", sep = ",", header = TRUE)
@@ -273,6 +274,18 @@ write.csv(merged_data, file = "full_df.csv")
 
 ```
 
+
+```{r}
+
+d = read.csv("full_df.csv")
+
+----# Visualizing ----
+
+# plot = ggplot(d, aes(mean))+
+#   geom_density(aes(mean))
+
+
+```
 
 3. Make one model per acoustic feature and test whether you can observe significant difference due to Diagnosis. Tip: Which other fixed factors should you control for (that is, include in the model)? Which random ones?
 - Bonus points: cross-validate the model and report the betas and standard errors from all rounds to get an idea of how robust the estimates are. 
