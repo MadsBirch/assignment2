@@ -1,0 +1,290 @@
+---
+title: "Assignment2_Part1_VoiceInSchizophrenia"
+author: "Riccardo Fusaroli"
+date: "July 17, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assignment 2 - Part 1 - Assessing voice in schizophrenia
+
+Schizophrenia has been associated with "inappropriate" voice, sometimes monotone, sometimes croaky. A few studies indicate that pitch might be an index of schizophrenia. However, an ongoing meta-analysis of the literature (which you will have a go at in the last assignment) indicates that pitch mean and standard deviation are only weak indicators of diagnosis. Can we do better with our new fancy complex skills?
+
+The corpus you are asked to analyse is a set of voice recordings from people with schizophrenia (just after first diagnosis) and 1-1 matched controls (on gender, age, education). Each participant watched 10 videos of triangles moving across the screen and had to describe them (so you have circa 10 recordings per person). I have already extracted the pitch once every 10 milliseconds and you will have to use this data to assess differences in the voice.
+
+N.B. Question to be answered via email to Celine: can you characterize voice in schizophrenia as acoustically different? Report the methods you used to answer this question and the results from the analyses. Add a couple of lines trying to interpret the results (make sense of the difference). E.g. People with schizophrenia tend to have high-pitched voice, and present bigger swings in their prosody than controls. Add a couple of lines describing limitations of the data/analyses if any is relevant.
+
+N.B. There are looots of files to be dealt with. Probably too many for your computer. This is a challenge for you. Some (complementary) possible strategies: You can select a subset of files only (and you have to justify your choice). You can learn how to use the apply() or map() functions. You can coordinate with classmates.
+
+1. In the course of this assignment you have to first select one datafile and figure out how to:
+
+- Extract "standard" descriptors of pitch: Mean, standard deviation, range
+- Extract less "standard" descriptors of pitch you can think of (e.g. median, iqr, mean absoluted deviation, coefficient of variation)
+- Extract "complex" descriptors: recurrence quantification analysis
+
+```{r}
+library(readr)
+library(crqa)
+library(readr)
+library(stringr)
+
+wd = getwd
+
+
+# loading files
+DemoData = read_delim("~/assignment2-master/DemoData.txt", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+
+articulation = read.table("Articulation.txt", sep = ",", header = TRUE)
+pitch = read.table("Pitch/Study1D0S101T2_f0.txt", sep = "\t", header = TRUE)
+
+# standard descriptors
+mean = mean(pitch$f0)
+sd = sd(pitch$f0)
+range = range(pitch$f0)
+median = median(pitch$f0)
+IQR = IQR(pitch$f0)
+mad = mad(pitch$f0)
+
+
+# RQA
+par = list(lgM =  50, steps = seq(1, 6, 1),  radiusspan = 100,  radiussample = 40, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE,  fnnpercent = 10,  typeami = "mindip")
+
+ans = optimizeParam(pitch$f0, pitch$f0, par, min.rec = 3.5, max.rec = 4.5)
+
+results = crqa (pitch$f0, pitch$f0, delay=ans$delay, embed=ans$emddim, radius=ans$radius,normalize=0,rescale=0,mindiagline = 2,minvertline = 2)
+
+results
+
+
+```
+
+
+2. Second you will have to turn the code into a function and loop through all the files (or even better use apply/sapply/lapply)
+- Remember to extract the relevant information from the file names (Participant, Diagnosis, Trial, Study)
+
+```{r}
+
+#------ Matrix for resilts -------
+Matrix = matrix(ncol = 20, nrow = 100)
+
+#------ Files ------
+pitch_study1c = list.files("Pitch", pattern = "Study1D0*")
+pitch_study1s = list.files("Pitch", pattern = "Study1D1*")
+pitch_list = c(pitch_study1c, pitch_study1s)
+
+pitch_mini = list.files("Pitch", pattern = "Study1D0S101*")
+
+
+#----- Function ------
+RQA_function = function(file) {
+  #dest = paste("Pitch/", file, sep = '')
+  #f0 = read.table(dest, sep = "\t", header = TRUE)
+  mean = mean(file$f0, na.rm = TRUE)
+  sd = sd(file$f0, na.rm = TRUE)
+  range = range(file$f0, na.rm = TRUE)
+  median = median(file$f0, na.rm = TRUE)
+  IQR = IQR(file$f0, na.rm = TRUE)
+  mad = mad(file$f0, na.rm = TRUE)
+
+
+  # RQA (lgM changed to 15 from 50)
+  par = try(list(lgM =  15, steps = seq(1, 6, 1),  radiusspan = 100,  radiussample = 40, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE,  fnnpercent = 10,  typeami = "mindip"))
+
+  ans = try(optimizeParam(file$f0, file$f0, par, min.rec = 3.5, max.rec = 4.5)) # min.rec = 3, max.rec = 5
+  if (length(ans) > 2) {
+  results = try(crqa(file$f0, file$f0, delay=ans$delay, embed=ans$emddim, radius=ans$radius,normalize=0,rescale=0,mindiagline = 2,minvertline = 2))} else {
+    results$RR = NA
+    results$DET = NA
+    results$NRLINE = NA
+    results$maxL = NA
+    results$L = NA
+    results$ENTR = NA
+    results$rENTR = NA
+    results$LAM = NA
+    results$TT = NA
+    results$RP = NA
+  }
+}
+
+#----- Applying the function-----
+# Why dont you work??
+
+pitch_files = list.files("Pitch", pattern = "*.txt")
+
+loop1DF = data.frame()
+df_result = data.frame()
+results = NULL
+participant = NULL
+mean = NULL
+sd = NULL
+range = NULL
+median =NULL
+IQR = NULL
+mad = NULL
+
+radius = NULL
+emddim = NULL
+delay = NULL
+
+ans = NULL
+
+par = list(lgM =  15, steps = seq(1, 6, 1),  radiusspan = 100,  radiussample = 40, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE,  fnnpercent = 10,  typeami = "mindip")
+
+for (i in pitch_files) {
+  # file = list.files(wd) #paste("Pitch/", files, sep = '')
+  dest = paste("Pitch/", i, sep = '')
+  x = read.table(dest, sep = "\t", header = TRUE)
+  mean = mean(x$f0, na.rm = TRUE)
+  sd = sd(x$f0, na.rm = TRUE)
+  range = range(x$f0, na.rm = TRUE)
+  rangeL = range[1]
+  rangeU = range[2]
+  median = median(x$f0, na.rm = TRUE)
+  IQR = IQR(x$f0, na.rm = TRUE)
+  mad = mad(x$f0, na.rm = TRUE)
+  
+
+  ans = try(optimizeParam(x$f0, x$f0, par, min.rec = 3, max.rec = 5))
+     if (length(ans) > 1) {
+       radius = ans$radius
+       emddim = ans$emddim
+       delay = ans$delay
+     }
+     else {
+       radius = NA
+       emddim = NA
+       delay = NA
+     }
+
+ 
+  extract = str_extract_all(i, "\\d+", simplify = TRUE)
+  Study = extract[1]
+  Diagnosis = extract[2]
+  ID = extract[3]
+  trial = extract[4]
+  
+  df_result = data.frame(ID, 
+                             Study, 
+                             trial, 
+                             Diagnosis, 
+                             mean, 
+                             sd, 
+                             rangeL,
+                             rangeU,
+                             median, 
+                             IQR, 
+                             mad, 
+                             radius, 
+                             emddim, 
+                             delay
+                             )
+  loop1DF = rbind(loop1DF, df_result)
+}
+
+
+median_radius = median(loop1DF$radius, na.rm = TRUE)
+median_emddim = median(loop1DF$emddim, na.rm = TRUE)
+median_delay = median(loop1DF$delay, na.rm = TRUE)
+
+loop2DF = data.frame()
+
+# another loop for running the crqa if you want the same parameters
+# how do we use the same parameters in a function?
+for (i in pitch_files) {
+  dest = paste("Pitch/", i, sep = '')
+  x = read.table(dest, sep = "\t", header = TRUE)
+  
+  a = try(crqa(x$f0, x$f0,delay = median_delay, embed= median_emddim, radius= median_radius,normalize=0,rescale=0,mindiagline = 2,minvertline = 2))
+  
+  if (length(a) > 2) {
+    RR = a[1]
+    DET= a[2]
+    NRLINE = a[3]
+    maxL = a[4]
+    L = a[5]
+    ENTR = a[6]
+    rENTR = a[7]
+    LAM = a[8]
+    TT = a[9]
+  }
+  else {
+    RR = NA
+    DET= NA
+    NRLINE = NA
+    maxL = NA
+    L = NA
+    ENTR = NA
+    rENTR = NA
+    LAM = NA
+    TT = NA
+  }
+  
+  extract = str_extract_all(i, "\\d+", simplify = TRUE)
+  Study = extract[1]
+  Diagnosis = extract[2]
+  ID = extract[3]
+  trial = extract[4]
+  
+  df_result = data.frame(ID, 
+                             Study, 
+                             trial, 
+                             Diagnosis, 
+    RR, DET, NRLINE, maxL, L, ENTR, rENTR, LAM, TT
+                             )
+  loop2DF = rbind(loop2DF, df_result)
+}
+
+
+merged_data = merge(loop1DF, loop2DF, by = c("ID", "Study", "trial", "Diagnosis"))
+
+write.csv(merged_data, file = "full_df.csv")
+
+
+  #----------------------------
+
+
+   if (length(ans) > 2) {
+  ans = try(crqa(x$f0, x$f0, delay=ans$delay, embed=ans$emddim, radius=ans$radius,normalize=0,rescale=0,mindiagline = 2,minvertline = 2))} else {
+    ans$RR = NA
+    ans$DET = NA
+    ans$NRLINE = NA
+    ans$maxL = NA
+    ans$L = NA
+    ans$ENTR = NA
+    ans$rENTR = NA
+    ans$LAM = NA
+    ans$TT = NA
+    ans$RP = NA
+  }
+  
+#test = RQA_function(pitch$f0)
+#test2 = lapply(pitch_mini, RQA_function)
+
+# write.csv(df_results, file = "df_results.csv") 
+
+# the model = D + trial + (1+D+trial|ID) + (1|study)
+# explain what we chose to put in the model
+# what about adding a random slope for study? BE careful you dont get an overly complex model
+
+
+```
+
+
+3. Make one model per acoustic feature and test whether you can observe significant difference due to Diagnosis. Tip: Which other fixed factors should you control for (that is, include in the model)? Which random ones?
+- Bonus points: cross-validate the model and report the betas and standard errors from all rounds to get an idea of how robust the estimates are. 
+3a. Is study a significant predictor in these models? What should you infer from this? Does study interact with diagnosis? What should you infer from this?
+
+4. Bonus Question: Compare effect size of diagnosis across the different measures. Which measure seems most sensitive?
+- Tip: to compare across measures you need to put all of them on the same scale, that is, you need to "standardize" them (z-score)
+
+5. Bonus question. In the Clinical Info file you have additional information about the participants. Which additional parameters (e.g. age, gender) should we control for? Report the effects.
+
+6. Write a paragraph reporting methods and results
+
+[Next assignment: can we use these measures to build a tool that diagnoses people from voice only?]
+
+## N.B. Remember to save the acoustic features of voice in a separate file, so to be able to load them next time
