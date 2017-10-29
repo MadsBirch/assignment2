@@ -26,11 +26,13 @@ N.B. There are looots of files to be dealt with. Probably too many for your comp
 - Extract "complex" descriptors: recurrence quantification analysis
 
 ```{r}
-
+library(Hmisc)
 library(readr)
 library(crqa)
 library(stringr)
 library(ggplot2)
+library(dplyr)
+
 
 wd = getwd()
 
@@ -111,8 +113,7 @@ RQA_function = function(file) {
   }
 }
 
-#----- Applying the function-----
-# Why dont you work??
+#----- LOOPS-----
 
 pitch_files = list.files("Pitch", pattern = "*.txt")
 
@@ -194,7 +195,6 @@ median_delay = median(loop1DF$delay, na.rm = TRUE)
 loop2DF = data.frame()
 
 # another loop for running the crqa if you want the same parameters
-# how do we use the same parameters in a function?
 for (i in pitch_files) {
   dest = paste("Pitch/", i, sep = '')
   x = read.table(dest, sep = "\t", header = TRUE)
@@ -244,32 +244,9 @@ merged_data = merge(loop1DF, loop2DF, by = c("ID", "Study", "trial", "Diagnosis"
 
 write.csv(merged_data, file = "full_df.csv")
 
-
-  #----------------------------
-
-
-   if (length(ans) > 2) {
-  ans = try(crqa(x$f0, x$f0, delay=ans$delay, embed=ans$emddim, radius=ans$radius,normalize=0,rescale=0,mindiagline = 2,minvertline = 2))} else {
-    ans$RR = NA
-    ans$DET = NA
-    ans$NRLINE = NA
-    ans$maxL = NA
-    ans$L = NA
-    ans$ENTR = NA
-    ans$rENTR = NA
-    ans$LAM = NA
-    ans$TT = NA
-    ans$RP = NA
-  }
   
 #test = RQA_function(pitch$f0)
 #test2 = lapply(pitch_mini, RQA_function)
-
-# write.csv(df_results, file = "df_results.csv") 
-
-# the model = D + trial + (1+D+trial|ID) + (1|study)
-# explain what we chose to put in the model
-# what about adding a random slope for study? BE careful you dont get an overly complex model
 
 
 ```
@@ -281,14 +258,48 @@ d = read.csv("full_df.csv")
 
 ----# Visualizing ----
 
-# plot = ggplot(d, aes(mean))+
-#   geom_density(aes(mean))
+ggplot(d)+geom_density(aes(mean))
+
+ggplot(d, aes(mean))+ 
+  geom_histogram(aes(y=..density..))+ 
+  stat_function(fun=dnorm, args=list(mean(d$mean),sd(d$mean)))
+
+ggplot(d, aes(Diagnosis, mean, fill = Diagnosis))+  geom_bar(stat="summary",fun.y=mean)+geom_errorbar(stat="summary",fun.data=mean_cl_boot, width = 0.2)
+
+```
+
+```{r}
+-----# merging datasets -----
+
+# merge by subject
+
+d2 = data.frame()
+
+d = dplyr::rename(d, Subject = ID)
+
+full_df = left_join(d, DemoData, by = "Subject")
+
+# 
+# DemoData = DemoData$variable = rownames(DemoData)
+# 
+# full_df = merge(d, DemoData, by.x = 2, by.y = 0, all.x = TRUE)
+# 
+# merge(dat1, dat2)
+# 
+# full_df = cbind(d, DemoData)
+
 
 
 ```
 
 3. Make one model per acoustic feature and test whether you can observe significant difference due to Diagnosis. Tip: Which other fixed factors should you control for (that is, include in the model)? Which random ones?
 - Bonus points: cross-validate the model and report the betas and standard errors from all rounds to get an idea of how robust the estimates are. 
+```{r}
+# the model = D + trial + (1+D+trial|ID) + (1|study)
+# explain what we chose to put in the model
+# what about adding a random slope for study? BE careful you dont get an overly complex model
+```
+
 3a. Is study a significant predictor in these models? What should you infer from this? Does study interact with diagnosis? What should you infer from this?
 
 4. Bonus Question: Compare effect size of diagnosis across the different measures. Which measure seems most sensitive?
