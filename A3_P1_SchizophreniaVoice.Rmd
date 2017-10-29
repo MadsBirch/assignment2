@@ -33,7 +33,6 @@ library(stringr)
 library(ggplot2)
 library(dplyr)
 
-
 wd = getwd()
 
 
@@ -277,7 +276,11 @@ d2 = data.frame()
 
 d = dplyr::rename(d, Subject = ID)
 
-full_df = left_join(d, DemoData, by = "Subject")
+full_df = NULL
+
+full_df = left_join(d, DemoData,  by = "Subject", "Diagnosis", "Study")
+
+full_df = merge(d, DemoData, by.y = "Subject", "Diagnosis", all.x = T)
 
 # 
 # DemoData = DemoData$variable = rownames(DemoData)
