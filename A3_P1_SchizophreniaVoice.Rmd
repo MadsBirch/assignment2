@@ -278,9 +278,9 @@ d = dplyr::rename(d, Subject = ID)
 
 full_df = NULL
 
-full_df = left_join(d, DemoData,  by = "Subject", "Diagnosis", "Study")
+full_df = left_join(d, DemoData,  by = "Subject", "Diagnosis")
 
-full_df = merge(d, DemoData, by.y = "Subject", "Diagnosis", all.x = T)
+full_df = merge(d, DemoData, by.y = c("Subject", "Diagnosis"), all= T)
 
 # 
 # DemoData = DemoData$variable = rownames(DemoData)
