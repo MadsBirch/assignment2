@@ -64,7 +64,10 @@ summary(m_logis)
 data$predicted = predict(m_logis, type = 'response')
 data$predicted = ifelse(data$predicted > 0.5, 1, 0)
 
-confusionMatrix(data = data$predicted, reference = data$Diagnosis)
+cm = confusionMatrix(data = data$predicted, reference = data$Diagnosis)
+
+cm$overall[1]
+
 
 rocCurve = roc(response = data$Diagnosis, predictor = data$predicted)
 auc(rocCurve)
@@ -74,10 +77,11 @@ plot(rocCurve, legacy.axes = TRUE)
 #------ Cross validation ------
 #------ Fold data ------
 #Create fold with unique SUBJ
-folds=createFolds(unique(full_data$SUBJ), k = 4)
+folds=createFolds(unique(data$Subject), k = 4)
+
 
 #--------Create matarix to store results--------
-cv_empty=matrix(ncol=3, nrow=4)
+cv_empty=NULL
 
 
 #----------------Loop----------------
@@ -87,26 +91,26 @@ n=1
 for (k in folds){
   #------ Split into training and test data ------ 
   #Create training dataset, data not in fold k
-  data_train=subset(full_data,!(SUBJ %in% k))
+  data_train=subset(data,!(Subject %in% k))
   #Create test dataset, data in fold k
-  data_test=subset(full_data,SUBJ %in% k)
+  data_test=subset(data,Subject %in% k)
   
   #------ train model - apply model to data_train ------
-  model= lmer(CHI_MLU~Diagnosis*VISIT+Gender+ADOS+MOT_MLU+verbalIQ+(1+VISIT|SUBJ),data_train)
-  #Make predictions based on model
-  Prediction=predict(model, type='response')
-  #Prints the prediction against the test data
-  results_train=ModelMetrics::rmse(data_train$CHI_MLU, Prediction)
+  logis_model = glm(Diagnosis ~ range, family = binomial, data_train)
+  predict_train = predict(logis_model, data_train, type = 'response')
+  predict_train = ifelse(data$predicted > 0.5, 1, 0)
+  cm_train = confusionMatrix(data = predict_train, reference = data_train$Diagnosis)
   
   #------ test the model - test model on data_test (last quarter) ------
   #Make predictions based on modeVIS
-  Prediction_test=predict(model, data_test, type='response', allow.new.levels = TRUE)
-  #
-  results_test=ModelMetrics::rmse(data_test$CHI_MLU, Prediction_test)
+  predict_test=predict(logis_model, data_test, type = 'response')
+  predict_test = ifelse(data$predicted > 0.5, 1, 0)
+  cm_train = confusionMatrix(data = predict_test, reference = data_test$Diagnosis)
   
   #------ save the performance ------ 
   #Fills out the kth row in cv_empty with iteration and rmse's
-  cv_empty[n,]=cbind(n,results_train,results_test)
+  #cv_empty[n,]=cbind(n, cm_train$overall[1], cm_test$overall[1])
+  print(cm_test$overall[1])
   n=n+1
   }
 
