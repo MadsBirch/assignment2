@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 In the previous part of the assignment you generated a bunch of "features", that is, of quantitative descriptors of voice in schizophrenia, focusing on pitch.
 In the course of this assignment we will use them to try to automatically diagnose schizophrenia from voice only, that is, relying on the set of features you produced last time, we will try to produce an automated classifier.
 
+
 ```{r}
 #------ Libraries ------
 library(readr)
@@ -36,14 +37,15 @@ wd
 ```
 
 
-### Question 1
+### Question 1: Can you diagnose schizophrenia from pitch range only? If so, how well?
+
 Build a logistic regression to see whether you can diagnose schizophrenia from pitch range only.
 
 Calculate the different performance measures (accuracy, sensitivity, specificity, PPV, NPV, ROC curve) on a logistic regression using the full dataset. Don't forget the random effects!
 
 Then cross-validate the logistic regression and re-calculate performance on the testing folds. N.B. The cross-validation functions you already have should be tweaked: you need to calculate these new performance measures.
 
-N.B. the predict() function generates probabilities (the full scale between 0 and 1). A probability > .5 indicates a choice of 1, below a choice of 0.
+N.B. the predict() function generates log odds (the full scale between minus and plus infinity). Log odds > 0 indicates a choice of 1, below a choice of 0.
 N.B. you need to decide whether calculate performance on each single test fold or save all the prediction for test folds in one datase, so to calculate overall performance.
 N.B. Now you have two levels of structure: subject and study. Should this impact your cross-validation?
 
@@ -78,71 +80,71 @@ plot(rocCurve, legacy.axes = TRUE)
 #------ Fold data ------
 #Create fold with unique SUBJ
 folds=createFolds(unique(data$Subject), k = 4)
+data$SubjectN=as.numeric(as.factor(data$Subject))
 
 
-#--------Create matarix to store results--------
-cv_empty=NULL
+#--------Create null list for results --------
+results = data.frame()
 
 
 #----------------Loop----------------
-#Indexing, reset when using the loop again
-n=1
 
 for (k in folds){
   #------ Split into training and test data ------ 
   #Create training dataset, data not in fold k
-  data_train=subset(data,!(Subject %in% k))
+  data_train=subset(data,!(SubjectN %in% k))
   #Create test dataset, data in fold k
-  data_test=subset(data,Subject %in% k)
+  data_test=subset(data,SubjectN %in% k)
   
   #------ train model - apply model to data_train ------
-  logis_model = glm(Diagnosis ~ range, family = binomial, data_train)
-  predict_train = predict(logis_model, data_train, type = 'response')
-  predict_train = ifelse(data$predicted > 0.5, 1, 0)
+  logis_model = glmer(Diagnosis ~ range + (1|Study), family = binomial, data_train, control = glmerControl(calc.derivs = FALSE))
+  
+  predict_train = predict(logis_model, data_train, type = 'response') #ask about response
+  predict_train = ifelse(predict_train > 0.5, 1, 0)
+  
   cm_train = confusionMatrix(data = predict_train, reference = data_train$Diagnosis)
+  
+  roc_train = roc(response = data_train$Diagnosis, predictor = predict_train)
+  auc_train = auc(roc_train)
   
   #------ test the model - test model on data_test (last quarter) ------
   #Make predictions based on modeVIS
-  predict_test=predict(logis_model, data_test, type = 'response')
-  predict_test = ifelse(data$predicted > 0.5, 1, 0)
-  cm_train = confusionMatrix(data = predict_test, reference = data_test$Diagnosis)
+  predict_test=predict(logis_model, data_test, type = 'response', allow.new.levels = TRUE)
+  predict_test = ifelse(predict_test > 0.5, 1, 0)
+  
+  cm_test = confusionMatrix(data = predict_test, reference = data_test$Diagnosis)
+  
+  roc_test = roc(response = data_test$Diagnosis, predictor = predict_test)
+  auc_test = auc(roc_test)
   
   #------ save the performance ------ 
-  #Fills out the kth row in cv_empty with iteration and rmse's
-  #cv_empty[n,]=cbind(n, cm_train$overall[1], cm_test$overall[1])
-  print(cm_test$overall[1])
-  n=n+1
-  }
+  
+  
+  one_row = data.frame(acc_train = cm_train$overall[1], acc_test = cm_test$overall[1], sens_train = cm_train$byClass[1], sens_test = cm_test$byClass[1], spec_train = cm_train$byClass[2], spec_test = cm_test$byClass[2], auc_train = auc_train, auc_test = auc_test,  npv_train = cm_train$byClass[3], npv_test = cm_test$byClass[3], ppv_train = cm_train$byClass[4], ppv_test = cm_test$byClass[4])
+  
+  
+  results = rbind(results, one_row)
+    }
 
-#------ Make the matrix into a data frame ------ 
-cv_results=data.frame(cv_empty)
-#Rename variables 
-cv_results=setnames(cv_results,"X1", "iteration")
-cv_results=setnames(cv_results,"X2", "train")
-cv_results=setnames(cv_results,"X3", "test")
+
+
 
 ```
 
 
+### Question 2 - Which single acoustic predictor is the best predictor of diagnosis?
 
-### Question 2
-
-Which single predictor is the best predictor of diagnosis?
-
-### Question 3
+### Question 3 - Which combination of acoustic predictors is best for diagnosing schizophrenia?
 
 Now it's time to go wild! Use all (voice-related) variables and interactions you can think of. Compare models and select the best performing model you can find.
 
 Remember:
-- Cross-validation or AIC are crucial to build the best model!
-- After choosing the model, train it on all the data you have
-- Save the model: save(modelName, file = "BestModelForever.rda")
-- Create a Markdown that can: a) extract the features from new pitch files (basically your previous markdown), b) load your model (e.g. load("BestModelForever.rda")), and c) predict the diagnosis in the new dataframe.
-Send it to Celine and Riccardo by Monday (so they'll have time to run it before class)-
+- Out-of-sample error crucial to build the best model!
+- After choosing the model, send Celine and Riccardo the code of your model
 
-### Question 4: Report the results
+### Question 4: Properly report the results
 
-METHODS SECTION: how did you analyse the data?
+METHODS SECTION: how did you analyse the data? That is, how did you extract the data, designed the models and compared their performance?
 
 RESULTS SECTION: can you diagnose schizophrenia based on voice? which features are used? Comment on the difference between the different performance measures.
 
@@ -153,3 +155,4 @@ You have some additional bonus data involving speech rate, pauses, etc. Include 
 ### Bonus question 6
 
 Logistic regression is only one of many classification algorithms. Try using others and compare performance. Some examples: Discriminant Function, Random Forest, Support Vector Machine, etc. The package caret provides them.
+
