@@ -140,9 +140,9 @@ The single best predictors is SD if we look at AUC test
 #--------Create null list for results --------
 m_comp = data.frame()
 
-features = list("range","sd", "IQR", "nsyll", "npause", "RR", "DET", "NRLINE", "maxL", "L", "ENTR", "rENTR", "LAM", "TT")
+features = list("range","sd", "IQR", "nsyll", "npause", "RR", "DET", "NRLINE", "maxL", "L", "ENTR", "rENTR", "LAM", "TT", "dur..s.", "phonationtime..s.", "speechrate..nsyll.dur.", "speechrate..nsyll.dur.", "articulation.rate..nsyll...phonationtime.", "ASD..speakingtime.nsyll.")
 
-data_BackUp = data
+#data_BackUp = data
 #----------------Loop----------------
 for (f in features){
   #Empty data frame
@@ -239,7 +239,7 @@ for (k in folds){
   data_test=subset(data,SubjectN %in% k)
   
   #------ train model - apply model to data_train ------
-  m_ny = glmer(Diagnosis ~ DET + TT + rENTR + sd + (1|Study), family = binomial, data_train, control = glmerControl(calc.derivs = FALSE))
+  m_best = glmer(Diagnosis ~  ASD..speakingtime.nsyll. + RR + sd + (1|Study), family = binomial, data_train, control = glmerControl(calc.derivs = FALSE))
   
   predict_train = predict(m_sdrr, data_train, type = 'response') #ask about response
   predict_train = ifelse(predict_train > 0.5, 1, 0)
@@ -277,8 +277,11 @@ m_roland = glmer(Diagnosis ~ TT + LAM + rENTR + (1|Study), family = binomial, da
 #add more predictors. still worse AIC: 1797.02
 m_ny = glmer(Diagnosis ~ DET + TT + rENTR + sd + (1|Study), family = binomial, data, control = glmerControl(calc.derivs = FALSE))
 
+#Best of articulation, Descriptive stats and RQA AIC = 1738.48
+m_best = glmer(Diagnosis ~ ASD..speakingtime.nsyll. + RR + sd + (1|Study), family = binomial, data, control = glmerControl(calc.derivs = FALSE))
+
 #r.squaredGLMM(m_roland)
-AIC(m_ssrr)
+AIC(m_best)
 #BIC(m_logis)
 ```
 
