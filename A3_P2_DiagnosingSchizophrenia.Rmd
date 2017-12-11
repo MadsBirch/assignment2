@@ -30,11 +30,6 @@ library(pROC)
 library(data.table)
 library(MuMIn)
 
-#------ WD -------
-wd = getwd()
-setwd(wd)
-
-wd
 
 ```
 
@@ -128,6 +123,11 @@ for (k in folds){
   results = rbind(results, one_row)
     }
 
+mean(results$auc_test)
+
+logis_model = glmer(Diagnosis ~ range + (1|Study), family = binomial, data, control = glmerControl(calc.derivs = FALSE))
+
+summary(logis_model)
 
 
 
@@ -226,7 +226,7 @@ Remember:
 
 
 #--------Create null list for results --------
-result.2.3 = data.frame()
+results.2.3 = data.frame()
 
 
 #----------------Loop----------------
@@ -265,8 +265,10 @@ for (k in folds){
   one_row = data.frame(acc_train = cm_train$overall[1], acc_test = cm_test$overall[1], sens_train = cm_train$byClass[1], sens_test = cm_test$byClass[1], spec_train = cm_train$byClass[2], spec_test = cm_test$byClass[2], auc_train = auc_train, auc_test = auc_test,  npv_train = cm_train$byClass[3], npv_test = cm_test$byClass[3], ppv_train = cm_train$byClass[4], ppv_test = cm_test$byClass[4])
   
   
-  results.2.3 = rbind(results, one_row)
+  results.2.3 = rbind(results.2.3, one_row)
 }
+
+#backup = results.2.3
 
 #using best AUC predictors, AIC:1781.05 
 m_ssrr = glmer(Diagnosis ~ sd + RR + (1|Study), family = binomial, data, control = glmerControl(calc.derivs = FALSE))
@@ -279,6 +281,8 @@ m_ny = glmer(Diagnosis ~ DET + TT + rENTR + sd + (1|Study), family = binomial, d
 
 #Best of articulation, Descriptive stats and RQA AIC = 1738.48
 m_best = glmer(Diagnosis ~ ASD..speakingtime.nsyll. + RR + sd + (1|Study), family = binomial, data, control = glmerControl(calc.derivs = FALSE))
+
+summary(m_best)
 
 #r.squaredGLMM(m_roland)
 AIC(m_best)

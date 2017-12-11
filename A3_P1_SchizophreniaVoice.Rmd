@@ -33,13 +33,9 @@ library(stringr)
 library(lme4)
 library(lmerTest)
 
-#------ WD -------
-wd = getwd()
-setwd(wd)
-
 
 #------ loading files ------
-DemoData = read_delim("~/assignment2-master/DemoData.txt", 
+DemoData = read_delim("~/assignment2/DemoData.txt", 
     "\t", escape_double = FALSE, trim_ws = TRUE)
 
 articulation = read.table("Articulation.txt", sep = ",", header = TRUE)
@@ -247,75 +243,9 @@ write.csv(merged_data, file = "full_df.csv")
 
 
 
-
-
-
 # the model = D + trial + (1+D+trial|ID) + (1|study)
 # explain what we chose to put in the model
 # what about adding a random slope for study? BE careful you dont get an overly complex model
-
-
-
-
-
-
-
-
-
-
-
-#----- Attempt at making a function and unused code ------
-  
-#test = RQA_function(pitch$f0)
-#test2 = lapply(pitch_mini, RQA_function)
-
-# write.csv(df_results, file = "df_results.csv") 
-
-RQA_function = function(file) {
-  #dest = paste("Pitch/", file, sep = '')
-  #f0 = read.table(dest, sep = "\t", header = TRUE)
-  mean = mean(file$f0, na.rm = TRUE)
-  sd = sd(file$f0, na.rm = TRUE)
-  range = range(file$f0, na.rm = TRUE)
-  median = median(file$f0, na.rm = TRUE)
-  IQR = IQR(file$f0, na.rm = TRUE)
-  mad = mad(file$f0, na.rm = TRUE)
-
-
-  # RQA (lgM changed to 15 from 50)
-  par = try(list(lgM =  15, steps = seq(1, 6, 1),  radiusspan = 100,  radiussample = 40, normalize = 0,  rescale = 0,  mindiagline = 2,  minvertline = 2,  tw = 0,  whiteline = FALSE,  recpt = FALSE,  fnnpercent = 10,  typeami = "mindip"))
-
-  ans = try(optimizeParam(file$f0, file$f0, par, min.rec = 3.5, max.rec = 4.5)) # min.rec = 3, max.rec = 5
-  if (length(ans) > 2) {
-  results = try(crqa(file$f0, file$f0, delay=ans$delay, embed=ans$emddim, radius=ans$radius,normalize=0,rescale=0,mindiagline = 2,minvertline = 2))} else {
-    results$RR = NA
-    results$DET = NA
-    results$NRLINE = NA
-    results$maxL = NA
-    results$L = NA
-    results$ENTR = NA
-    results$rENTR = NA
-    results$LAM = NA
-    results$TT = NA
-    results$RP = NA
-  }
-}
-
-   if (length(ans) > 2) {
-  ans = try(crqa(x$f0, x$f0, delay=ans$delay, embed=ans$emddim, radius=ans$radius,normalize=0,rescale=0,mindiagline = 2,minvertline = 2))} else {
-    ans$RR = NA
-    ans$DET = NA
-    ans$NRLINE = NA
-    ans$maxL = NA
-    ans$L = NA
-    ans$ENTR = NA
-    ans$rENTR = NA
-    ans$LAM = NA
-    ans$TT = NA
-    ans$RP = NA
-
-  }
-
 
 ```
 
@@ -379,11 +309,6 @@ summary(m_dur.s)
 summary(m_speech.rate)
 summary(m_asd)
 
-
-
-# the model = D + trial + (1+D+trial|ID) + (1|study)
-# explain what we chose to put in the model
-# what about adding a random slope for study? BE careful you dont get an overly complex model
 ```
 
 
